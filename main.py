@@ -29,16 +29,15 @@ def gerar_link():
         valor_total = dados_pedido.get('total')
         nome_cliente = dados_pedido.get('nome')
 
-        # 3. CORREÇÃO CRUCIAL: Garante que o valor vire um número decimal correto para a InfinitePay
-        # Se vier "1.591,038" do site, precisamos converter para 1591.04
+        # 3. MANTIDO: Tratamento de valor para garantir o formato decimal
         valor_limpo = str(valor_total).replace('.', '').replace(',', '.')
         valor_float = float(valor_limpo)
 
-        # 4. MANTIDO: Payload completo conforme seu código original (caso consiga o token depois)
-        # Por enquanto, geramos o link direto que funciona sem token
-        link_pagamento = f"https://pay.infinitepay.io/{INFINITE_TAG}/{valor_float:.2f}"
+        # 4. CORREÇÃO: Alterado de 'pay.infinitepay.io' para 'linknabio.gg' 
+        # conforme a imagem do seu perfil para evitar o erro 404
+        link_pagamento = f"https://linknabio.gg/{INFINITE_TAG}/{valor_float:.2f}"
         
-        # Log para você conferir no Render se o link está saindo certo
+        # Log para conferência no Render
         print(f"Link gerado para {nome_cliente}: {link_pagamento}")
 
         return jsonify({"url": link_pagamento})
