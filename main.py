@@ -9,9 +9,9 @@ app = Flask(__name__)
 CORS(app)  # Permite que seu site envie dados para este servidor
 
 # O Render vai ler essas chaves das 'Environment Variables' que configuramos
-INFINITE_TOKEN = os.environ.get("INFINITE_TOKEN", "SEU_BEARER_TOKEN_AQUI")
+INFINITE_TOKEN = os.environ.get("INFINITE_TOKEN", "glabpeplog")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "SEU_WEBHOOK_SECRET_AQUI")
-INFINITE_TAG = os.environ.get("INFINITE_TAG", "SUA_TAG_SEM_CIFRAO")
+INFINITE_TAG = os.environ.get("INFINITE_TAG", "glabpeplog")
 
 @app.route('/gerar-link-pagamento', methods=['POST'])
 def gerar_link():
@@ -90,3 +90,4 @@ if __name__ == '__main__':
     # No Render a porta é definida automaticamente pela variável PORT
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
