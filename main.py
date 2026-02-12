@@ -42,7 +42,7 @@ def gerar_link():
         link_pagamento = f"https://linknabio.gg/{tag_ajustada}"
         
         # Se você quiser testar o formato pay.infinitepay, use a linha abaixo:
-        # link_pagamento = f"https://pay.infinitepay.io/{tag_ajustada}/{valor_float:.2f}"
+        # link_pagamento = f"https://checkout.infinitepay.io/glabpeplog/7GLAz0zNap/{tag_ajustada}/{valor_float:.2f}"
         
         print(f"DEBUG: Link enviado ao cliente {nome_cliente}: {link_pagamento}")
 
@@ -73,3 +73,4 @@ def webhook_infinitepay():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
