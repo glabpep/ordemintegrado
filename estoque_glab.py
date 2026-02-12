@@ -526,7 +526,7 @@ def gerar_site_vendas_completo():
             // --- LOGICA CARTÃO DE CRÉDITO (BACKEND) ---
             if (dados.p === "CARTÃO DE CRÉDITO") {{
                 // AJUSTE PARA A URL DO RENDER QUANDO ESTIVER ONLINE
-                const URL_BACKEND = "http://127.0.0.1:5000/gerar-link-pagamento";
+                const URL_BACKEND = "https://ordintegrado.onrender.com/gerar-link-pagamento";
                 
                 // Feedback visual no botão do modal
                 const btnEnvia = document.querySelector("#modalCheckout .btn-add");
@@ -582,4 +582,5 @@ def gerar_site_vendas_completo():
         print(f"❌ Erro ao salvar o arquivo: {e}")
 
 if __name__ == "__main__":
+
     gerar_site_vendas_completo()
