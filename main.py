@@ -6,7 +6,7 @@ import hmac
 import hashlib
 
 app = Flask(__name__)
-CORS(app)  # Permite que seu site envie dados para este servidor
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # O Render vai ler essas chaves das 'Environment Variables' que configuramos
 INFINITE_TOKEN = os.environ.get("INFINITE_TOKEN", "glabpeplog")
@@ -90,4 +90,5 @@ if __name__ == '__main__':
     # No Render a porta é definida automaticamente pela variável PORT
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
