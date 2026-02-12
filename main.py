@@ -7,7 +7,7 @@ import hashlib
 
 app = Flask(__name__)
 
-# 1. MANTIDO: Configuração de CORS completa para evitar erros no navegador
+# 1. MANTIDO: Configuração de CORS completa
 CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
 
 @app.after_request
@@ -17,7 +17,7 @@ def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# 2. MANTIDO: Seus dados originais e variáveis do Render
+# 2. MANTIDO: Suas variáveis originais
 INFINITE_TOKEN = os.environ.get("INFINITE_TOKEN", "glabpeplog")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "SEU_WEBHOOK_SECRET_AQUI")
 INFINITE_TAG = os.environ.get("INFINITE_TAG", "glabpeplog")
@@ -29,15 +29,17 @@ def gerar_link():
         valor_total = dados_pedido.get('total')
         nome_cliente = dados_pedido.get('nome')
 
-        # 3. MANTIDO: Tratamento de valor para garantir o formato decimal
-        valor_limpo = str(valor_total).replace('.', '').replace(',', '.')
+        # 3. MANTIDO E CORRIGIDO: Tratamento de valor
+        # Remove R$, pontos e garante que vira um número limpo (ex: 412.59)
+        valor_limpo = str(valor_total).replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.')
         valor_float = float(valor_limpo)
 
-        # 4. CORREÇÃO: Alterado de 'pay.infinitepay.io' para 'linknabio.gg' 
-        # conforme a imagem do seu perfil para evitar o erro 404
-        link_pagamento = f"https://linknabio.gg/{INFINITE_TAG}/{valor_float:.2f}"
+        # 4. A SOLUÇÃO DEFINITIVA: 
+        # Removido o '$' da URL e garantido o formato 'pay.infinitepay.io/tag/valor'
+        # Esse é o formato que o sistema deles exige para links rápidos
+        tag_limpa = INFINITE_TAG.replace('$', '')
+        link_pagamento = f"https://pay.infinitepay.io/{tag_limpa}/{valor_float:.2f}"
         
-        # Log para conferência no Render
         print(f"Link gerado para {nome_cliente}: {link_pagamento}")
 
         return jsonify({"url": link_pagamento})
@@ -48,7 +50,7 @@ def gerar_link():
 
 @app.route('/webhook/infinitepay', methods=['POST'])
 def webhook_infinitepay():
-    # 5. MANTIDO: Verificação de Segurança (Assinatura) original
+    # 5. MANTIDO: Verificação de Segurança (Assinatura)
     signature = request.headers.get('x-infinitepay-signature')
     payload = request.data
     
@@ -57,7 +59,7 @@ def webhook_infinitepay():
         if not hmac.compare_digest(hash_check, signature):
             return jsonify({"status": "invalid signature"}), 401
 
-    # 6. MANTIDO: Processamento dos dados recebidos original
+    # 6. MANTIDO: Processamento dos dados recebidos
     dados = request.json
     
     if dados.get('status') in ['approved', 'paid']:
