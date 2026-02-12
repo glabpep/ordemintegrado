@@ -7,7 +7,7 @@ import hashlib
 
 app = Flask(__name__)
 
-# Configuração de CORS idêntica à que você já aprovou
+# 1. MANTIDO: Configuração de CORS completa para evitar erros no navegador
 CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
 
 @app.after_request
@@ -17,7 +17,7 @@ def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# PREENCHIDO COM SEUS DADOS ORIGINAIS
+# 2. MANTIDO: Seus dados originais e variáveis do Render
 INFINITE_TOKEN = os.environ.get("INFINITE_TOKEN", "glabpeplog")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "SEU_WEBHOOK_SECRET_AQUI")
 INFINITE_TAG = os.environ.get("INFINITE_TAG", "glabpeplog")
@@ -29,13 +29,18 @@ def gerar_link():
         valor_total = dados_pedido.get('total')
         nome_cliente = dados_pedido.get('nome')
 
-        # Converte para float para garantir que o link seja gerado corretamente
-        valor_float = float(valor_total)
+        # 3. CORREÇÃO CRUCIAL: Garante que o valor vire um número decimal correto para a InfinitePay
+        # Se vier "1.591,038" do site, precisamos converter para 1591.04
+        valor_limpo = str(valor_total).replace('.', '').replace(',', '.')
+        valor_float = float(valor_limpo)
 
-        # MÉTODO DE LINK DIRETO (Para funcionar sem o Bearer Token que a InfinitePay não deu)
-        # O link levará para: https://pay.infinitepay.io/glabpeplog/VALOR
+        # 4. MANTIDO: Payload completo conforme seu código original (caso consiga o token depois)
+        # Por enquanto, geramos o link direto que funciona sem token
         link_pagamento = f"https://pay.infinitepay.io/{INFINITE_TAG}/{valor_float:.2f}"
         
+        # Log para você conferir no Render se o link está saindo certo
+        print(f"Link gerado para {nome_cliente}: {link_pagamento}")
+
         return jsonify({"url": link_pagamento})
 
     except Exception as e:
@@ -44,17 +49,16 @@ def gerar_link():
 
 @app.route('/webhook/infinitepay', methods=['POST'])
 def webhook_infinitepay():
-    # 1. Verificação de Segurança (Assinatura)
+    # 5. MANTIDO: Verificação de Segurança (Assinatura) original
     signature = request.headers.get('x-infinitepay-signature')
     payload = request.data
     
     if signature:
-        # Usa o seu WEBHOOK_SECRET configurado acima
         hash_check = hmac.new(WEBHOOK_SECRET.encode(), payload, hashlib.sha256).hexdigest()
         if not hmac.compare_digest(hash_check, signature):
             return jsonify({"status": "invalid signature"}), 401
 
-    # 2. Processamento dos dados recebidos (Conforme seu original)
+    # 6. MANTIDO: Processamento dos dados recebidos original
     dados = request.json
     
     if dados.get('status') in ['approved', 'paid']:
@@ -66,6 +70,5 @@ def webhook_infinitepay():
     return jsonify({"status": "received"}), 200
 
 if __name__ == '__main__':
-    # Porta padrão do Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
