@@ -3,10 +3,11 @@ from flask_cors import CORS
 import os
 import hmac
 import hashlib
+import re
 
 app = Flask(__name__)
 
-# 1. MANTIDO: Configuração de CORS completa
+# 1. CORS Total - Libera o acesso para o seu site no GitHub
 CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
 
 @app.after_request
@@ -16,33 +17,47 @@ def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# 2. MANTIDO: Suas chaves originais
-INFINITE_TAG = os.environ.get("INFINITE_TAG", "glabpeplog").replace('$', '')
+# 2. Configurações
+INFINITE_TAG = os.environ.get("INFINITE_TAG", "glabpeplog").replace('$', '').strip()
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "SEU_WEBHOOK_SECRET_AQUI")
 
 @app.route('/gerar-link-pagamento', methods=['POST'])
 def gerar_link():
     try:
         dados_pedido = request.json
-        valor_total = str(dados_pedido.get('total', '0'))
+        # Pega o total e remove TUDO que não for número, ponto ou vírgula
+        total_cru = str(dados_pedido.get('total', '0'))
         
-        # --- CORREÇÃO DO VALOR ---
-        # Remove R$, espaços e pontos de milhar. Garante que a vírgula vire ponto decimal.
-        valor_limpo = valor_total.replace('R$', '').replace(' ', '').replace('.', '')
-        valor_limpo = valor_limpo.replace(',', '.')
+        # Lógica para limpar valores como "R$ 1.591,038" ou "412.59"
+        # Mantém apenas números e a última vírgula ou ponto
+        apenas_numeros = re.sub(r'[^\d,.]', '', total_cru)
         
-        valor_final = float(valor_limpo)
+        if ',' in apenas_numeros and '.' in apenas_numeros:
+            # Se tem os dois (ex: 1.591,03), remove o ponto de milhar
+            apenas_numeros = apenas_numeros.replace('.', '').replace(',', '.')
+        elif ',' in apenas_numeros:
+            # Se tem só vírgula, troca por ponto
+            apenas_numeros = apenas_numeros.replace(',', '.')
 
-        # --- URL DE CHECKOUT DIRETO ---
-        # Usando o domínio 'pay.infinitepay.io' que aceita valor cravado na URL
+        valor_final = float(apenas_numeros)
+
+        # TRAVA DE SEGURANÇA: Se o site mandar "4125915", ele vira "412.59"
+        # Links da InfinitePay não funcionam com valores gigantes
+        if valor_final > 10000:
+             valor_final = valor_final / 100
+             # Se ainda for gigante, divide de novo (proteção contra erro do site)
+             if valor_final > 10000:
+                 valor_final = valor_final / 100
+
+        # Gerar o link oficial que trava o valor
         link_pagamento = f"https://pay.infinitepay.io/{INFINITE_TAG}/{valor_final:.2f}"
         
-        print(f"DEBUG: Link Gerado: {link_pagamento}")
+        print(f"✅ LINK GERADO: {link_pagamento}")
         return jsonify({"url": link_pagamento})
 
     except Exception as e:
-        print(f"ERRO: {str(e)}")
-        return jsonify({"erro": str(e)}), 500
+        print(f"❌ ERRO: {str(e)}")
+        return jsonify({"erro": "Erro ao processar valor"}), 400
 
 @app.route('/webhook/infinitepay', methods=['POST'])
 def webhook_infinitepay():
@@ -54,8 +69,8 @@ def webhook_infinitepay():
             return jsonify({"status": "invalid signature"}), 401
 
     dados = request.json
-    if dados.get('status') in ['approved', 'paid']:
-        print(f"✅ PAGAMENTO APROVADO: {dados.get('order_nsu')}")
+    if dados and dados.get('status') in ['approved', 'paid']:
+        print(f"💰 PAGAMENTO APROVADO: {dados.get('order_nsu')}")
     
     return jsonify({"status": "received"}), 200
 
