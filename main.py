@@ -33,7 +33,7 @@ def gerar_link():
                 }
             ],
             # Opcional: Para onde o cliente vai após pagar
-            "redirect_url": "https://seusite.com/obrigado", 
+            "redirect_url": "https://glabpep.github.io/ordemintegrado/", 
             # URL do seu serviço no Render para receber confirmação automática
             "webhook_url": f"https://{request.host}/webhook/infinitepay"
         }
@@ -90,6 +90,7 @@ if __name__ == '__main__':
     # No Render a porta é definida automaticamente pela variável PORT
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
