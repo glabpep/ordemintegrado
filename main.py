@@ -6,55 +6,41 @@ import hmac
 import hashlib
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
 
-# O Render vai ler essas chaves das 'Environment Variables' que configuramos
-INFINITE_TOKEN = os.environ.get("INFINITE_TOKEN", "glabpeplog")
-WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "SEU_WEBHOOK_SECRET_AQUI")
+# Configuração robusta de CORS para evitar bloqueios no navegador
+CORS(app, resources={r"/*": {
+    "origins": "*",
+    "methods": ["GET", "POST", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"]
+}})
+
+# Garante que todos os cabeçalhos de permissão sejam enviados em cada resposta
+@app.after_request
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+# Variáveis configuradas no Render
 INFINITE_TAG = os.environ.get("INFINITE_TAG", "glabpeplog")
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "SEU_WEBHOOK_SECRET_AQUI")
 
 @app.route('/gerar-link-pagamento', methods=['POST'])
 def gerar_link():
     try:
         dados_pedido = request.json
         valor_total = dados_pedido.get('total')
-        nome_cliente = dados_pedido.get('nome')
-
-        # Montando o payload conforme a documentação interativa que você enviou
-        payload = {
-            "handle": INFINITE_TAG,
-            "order_nsu": f"GLAB-{os.urandom(3).hex().upper()}",
-            "amount": int(float(valor_total) * 100), # Valor total em centavos
-            "itens": [
-                {
-                    "description": f"Pedido G-LAB - {nome_cliente}",
-                    "quantity": 1,
-                    "price": int(float(valor_total) * 100)
-                }
-            ],
-            # Opcional: Para onde o cliente vai após pagar
-            "redirect_url": "https://glabpep.github.io/ordemintegrado/", 
-            # URL do seu serviço no Render para receber confirmação automática
-            "webhook_url": f"https://{request.host}/webhook/infinitepay"
-        }
-
-        headers = {
-            "Authorization": f"Bearer {INFINITE_TOKEN}",
-            "Content-Type": "application/json"
-        }
-
-        # Rota oficial de checkout da documentação
-        url_api = "https://api.infinitepay.io/invoices/public/checkout/links"
         
-        response = requests.post(url_api, json=payload, headers=headers)
-        res_data = response.json()
+        # Converte o valor para o formato decimal (ex: 345.87)
+        valor_float = float(valor_total)
 
-        if response.status_code in [200, 201]:
-            # Retornamos a URL para o site abrir
-            return jsonify({"url": res_data.get('url')})
-        else:
-            print(f"Erro na API: {res_data}")
-            return jsonify({"erro": "Erro na InfinitePay", "details": res_data}), 400
+        # --- MÉTODO SEM TOKEN (Smart Checkout) ---
+        # Cria o link direto: pay.infinitepay.io/SUA_TAG/VALOR
+        link_pagamento = f"https://pay.infinitepay.io/{INFINITE_TAG}/{valor_float:.2f}"
+        
+        # Retorna o link para o seu site redirecionar o cliente
+        return jsonify({"url": link_pagamento})
 
     except Exception as e:
         print(f"Erro no servidor: {str(e)}")
@@ -66,7 +52,7 @@ def webhook_infinitepay():
     signature = request.headers.get('x-infinitepay-signature')
     payload = request.data
     
-    if signature:
+    if signature and WEBHOOK_SECRET != "SEU_WEBHOOK_SECRET_AQUI":
         hash_check = hmac.new(WEBHOOK_SECRET.encode(), payload, hashlib.sha256).hexdigest()
         if not hmac.compare_digest(hash_check, signature):
             return jsonify({"status": "invalid signature"}), 401
@@ -74,24 +60,18 @@ def webhook_infinitepay():
     # 2. Processamento dos dados recebidos
     dados = request.json
     
-    # Na rota de checkout/links, o status de aprovado vem como 'paid' ou 'approved'
-    # dependendo da versão. Verificamos se há sucesso.
+    # Verifica se o pagamento foi aprovado
     if dados.get('status') in ['approved', 'paid']:
         valor_pago = dados.get('amount', 0) / 100
-        order_id = dados.get('order_nsu')
+        order_id = dados.get('order_nsu', 'N/A')
         print(f"✅ PAGAMENTO CONFIRMADO!")
         print(f"Pedido: {order_id} | Valor: R$ {valor_pago:.2f}")
         
-        # TODO: Adicione aqui seu código para disparar o WhatsApp de aviso
+        # Aqui você poderá futuramente inserir o código de disparo de WhatsApp
     
     return jsonify({"status": "received"}), 200
 
 if __name__ == '__main__':
-    # No Render a porta é definida automaticamente pela variável PORT
+    # O Render define a porta automaticamente
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
-
-
-
-
