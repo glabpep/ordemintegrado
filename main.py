@@ -50,7 +50,7 @@ def gerar_link():
                  valor_final = valor_final / 100
 
         # Gerar o link oficial que trava o valor
-        link_pagamento = f"https://checkout.infinitepay.io/glabpeplog/2Q6NARU4eX/{INFINITE_TAG}/{valor_final:.2f}"
+        link_pagamento = f"https://checkout.infinitepay.io/glabpeplog/2Q6NARU4eX"
         
         print(f"✅ LINK GERADO: {link_pagamento}")
         return jsonify({"url": link_pagamento})
@@ -77,5 +77,6 @@ def webhook_infinitepay():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
